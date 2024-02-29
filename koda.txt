@@ -1,0 +1,145 @@
+#include <iostream>
+#include <vector>
+#include <SDL2/SDL.h>
+
+#undef main
+using namespace std;
+
+// Dimenzije okna
+const int WINDOW_WIDTH = 900;
+const int WINDOW_HEIGHT = 600;
+
+// Dimenzije kvadrata
+const int SQUARE_SIZE = 25;
+
+// Struktura otoka
+struct Island {
+    int x;
+    int y;
+    int width;
+    int height;
+};
+
+// Funkcija za risanje kvadrata
+void drawSquare(SDL_Renderer* renderer, int x, int y) {
+    SDL_Rect squareRect;
+    squareRect.x = x;
+    squareRect.y = y;
+    squareRect.w = SQUARE_SIZE;
+    squareRect.h = SQUARE_SIZE;
+
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    SDL_RenderFillRect(renderer, &squareRect);
+}
+
+// Funkcija za risanje otoka
+void drawIsland(SDL_Renderer* renderer, const Island& island) {
+    SDL_Rect islandRect;
+    islandRect.x = island.x;
+    islandRect.y = island.y;
+    islandRect.w = island.width;
+    islandRect.h = island.height;
+
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    SDL_RenderFillRect(renderer, &islandRect);
+}
+
+int main() {
+
+
+    // Inicializacija SDL
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        SDL_Log("SDL initialization failed: %s", SDL_GetError());
+        return 1;
+    }
+
+    // Ustvarjanje okna
+    SDL_Window* window = SDL_CreateWindow("Kvadrat in otok",
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          WINDOW_WIDTH,
+                                          WINDOW_HEIGHT,
+                                          SDL_WINDOW_SHOWN);
+
+    if (window == nullptr) {
+        SDL_Log("Failed to create window: %s", SDL_GetError());
+        SDL_Quit();
+        return 1;
+    }
+
+    // Ustvarjanje rendererja
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    if (renderer == nullptr) {
+        SDL_Log("Failed to create renderer: %s", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+
+    // Barvanje ozadja v belo
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderClear(renderer);
+
+    // Nastavitev začetnih koordinat kvadrata
+    int squareX = 0;
+    int squareY = (WINDOW_HEIGHT - SQUARE_SIZE) / 2;
+
+    // Ustvarjanje otoka
+    Island island;
+    island.width = WINDOW_WIDTH / 3; // Širina otoka (cela desna tretjina ekrana)
+    island.height = WINDOW_HEIGHT;   // Višina otoka (celotna višina ekrana)
+    island.x = WINDOW_WIDTH - island.width; // X-koordinata otoka (na desni strani ekrana)
+    island.y = 0; // Y-koordinata otoka (vrh ekrana)
+
+    // Glavna zanka
+    bool quit = false;
+    SDL_Event event;
+    while (!quit) {
+        // Obdelava dogodkov
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                quit = true;
+            }
+            else if (event.type == SDL_KEYDOWN) {
+                // Premikanje kvadrata s puščičnimi tipkami
+                switch (event.key.keysym.sym) {
+                    case SDLK_w:
+                        squareY -= SQUARE_SIZE;
+                        break;
+                    case SDLK_s:
+                        squareY += SQUARE_SIZE;
+                        break;
+                    case SDLK_a:
+                        squareX -= SQUARE_SIZE;
+                        break;
+                    case SDLK_d:
+                        if (squareX < island.x - SQUARE_SIZE) {
+                            squareX += SQUARE_SIZE;
+                        }
+                        break;
+                }
+            }
+        }
+
+        // Omejitev premika kvadrata znotraj okna
+        squareX = max(0, min(squareX, WINDOW_WIDTH - SQUARE_SIZE));
+        squareY = max(0, min(squareY, WINDOW_HEIGHT - SQUARE_SIZE));
+
+        // Prikaz na zaslon
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderClear(renderer);
+
+        drawSquare(renderer, squareX, squareY);
+        drawIsland(renderer, island);
+
+        SDL_RenderPresent(renderer);
+    }
+
+    // Čiščenje virov
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+
+    return 0;
+}
